@@ -9,16 +9,8 @@ import requests
 import sys
 import time
 import os
-import configparser
+from plexapi.server import CONFIG
 from datetime import datetime
-
-# Determine the path to the config.ini file
-script_dir = os.path.dirname(os.path.abspath(__file__))
-config_path = os.path.join(script_dir, '..', 'config.ini')
-
-# Read configuration file
-config = configparser.ConfigParser()
-config.read('config.ini')
 
 # Extract Tautulli settings
 TAUTULLI_APIKEY = config.get('auth', 'tautulli_apikey')

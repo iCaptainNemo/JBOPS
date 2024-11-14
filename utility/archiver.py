@@ -1,9 +1,15 @@
 import os
 import zipfile
 import subprocess
-import configparser
+from plexapi.server import CONFIG
 
-def archive_files(items, archive_path):
+# Extract archive settings
+ARCHIVE_PATH = CONFIG.data['archive'].get('archive_path', os.getcwd())
+S3_BUCKET = CONFIG.data['archive'].get('s3_bucket', 'my-bucket')
+RCLONE_PATH = CONFIG.data['archive'].get('rclone_path', '~/bin/rclone')
+RCLONE_URL = CONFIG.data['archive'].get('rclone_url', '127.0.0.1:1234')
+
+def archive_files(items, archive_path=ARCHIVE_PATH):
     """
     Archive the given files into a zip file.
 
@@ -28,7 +34,7 @@ def archive_files(items, archive_path):
 
     print(f"Archive created at: {archive_file}")
 
-def archive_to_s3(items, s3_bucket, s3_path, rclone_path="~/bin/rclone"):
+def archive_to_s3(items, s3_bucket=S3_BUCKET, s3_path='', rclone_path=RCLONE_PATH):
     """
     Archive the given files to AWS S3 using rclone.
 
@@ -51,7 +57,7 @@ def archive_to_s3(items, s3_bucket, s3_path, rclone_path="~/bin/rclone"):
         else:
             print(f"File not found: {item}")
 
-def refresh_rclone_cache(rclone_url=None):
+def refresh_rclone_cache(rclone_url=RCLONE_URL):
     """
     Refresh the rclone cache.
 
@@ -63,11 +69,6 @@ def refresh_rclone_cache(rclone_url=None):
     -------
     None
     """
-    if rclone_url is None:
-        config = configparser.ConfigParser()
-        config.read('config.ini')
-        rclone_url = config.get('archive', 'rclone_url', fallback=None)
-
     if rclone_url:
         command = f'rclone rc --url {rclone_url} vfs/refresh recursive=true'
         subprocess.run(command, shell=True, check=True)
