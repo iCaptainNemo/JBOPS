@@ -7,6 +7,13 @@ Most of these scripts utilize a combination of [Tautulli](https://github.com/Tau
 For use of config.ini for common variables please use [plexapi.CONFIG](http://python-plexapi.readthedocs.io/en/latest/configuration.html)
 
 Default location `~/.config/plexapi/config.ini`
+
+## Setup
+
+Copy the default configuration file to create your own `config.ini` file:
+    ```sh
+    cp config.default.ini config.ini
+    ```
 ```python
 # To find path
 import plexapi
