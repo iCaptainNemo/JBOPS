@@ -9,7 +9,16 @@ import requests
 import sys
 import time
 import os
+import configparser
 from datetime import datetime
+
+# Read configuration file
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# Extract Tautulli settings
+TAUTULLI_APIKEY = config.get('auth', 'tautulli_apikey')
+TAUTULLI_URL = config.get('auth', 'tautulli_baseurl')
 
 # Prompt user for the number of days to look back, default to 30 days if no input
 days_input = input("Enter the number of days to look back (default is 30): ").strip()
@@ -29,10 +38,22 @@ if operator_choice not in ("<=", ">="):
     print("Invalid operator choice. Defaulting to <=.")
     operator_choice = "<="
 
-# ## EDIT THESE SETTINGS ##
-TAUTULLI_APIKEY = 'XXXXXX'  # Your Tautulli API key
-TAUTULLI_URL = 'http://localhost:8181/'  # Your Tautulli URL
-LIBRARY_NAMES = ['My TV Shows', 'My Movies']  # Name of libraries you want to check.
+def get_library_names():
+    """
+    Get a list of library sections and ids on the PMS.
+    """
+    payload = {'apikey': TAUTULLI_APIKEY, 'cmd': 'get_libraries_table'}
+    try:
+        r = requests.get(TAUTULLI_URL.rstrip('/') + '/api/v2', params=payload)
+        response = r.json()
+        return response['response']['data']['data']
+    except Exception as e:
+        sys.stderr.write(f"Tautulli API 'get_libraries_table' request failed: {e}.")
+        return []
+
+# Get library names from Tautulli
+libraries = get_library_names()
+LIBRARY_NAMES = [lib['section_name'] for lib in libraries]
 
 # Display available libraries and prompt the user to select one or more
 print("\nAvailable Libraries:")
@@ -44,7 +65,6 @@ selected_libs_indices = [int(x.strip()) - 1 for x in selected_libs_input.split('
 
 # Filter libraries based on user selection
 LIBRARY_NAMES = [LIBRARY_NAMES[i] for i in selected_libs_indices if 0 <= i < len(LIBRARY_NAMES)]
-
 
 class LIBINFO(object):
     def __init__(self, data=None):
