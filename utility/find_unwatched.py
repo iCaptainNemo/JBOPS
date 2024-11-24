@@ -13,8 +13,18 @@ from plexapi.server import CONFIG
 from datetime import datetime
 
 # Extract Tautulli settings
-TAUTULLI_APIKEY = config.get('auth', 'tautulli_apikey')
-TAUTULLI_URL = config.get('auth', 'tautulli_baseurl')
+TAUTULLI_APIKEY = CONFIG.data['auth'].get('tautulli_apikey')
+TAUTULLI_URL = CONFIG.data['auth'].get('tautulli_baseurl')
+
+# Extract local file settings
+LOCAL_ROOT_DIRECTORY = CONFIG.data['auth'].get('local_root_directory')
+RELATIVE_PATH_PREFIX = CONFIG.data['auth'].get('relative_path_prefix')
+
+# Hardcoded values if config variables are empty
+if not LOCAL_ROOT_DIRECTORY:
+    LOCAL_ROOT_DIRECTORY = ''
+if not RELATIVE_PATH_PREFIX:
+    RELATIVE_PATH_PREFIX = ''
 
 # Prompt user for the number of days to look back, default to 30 days if no input
 days_input = input("Enter the number of days to look back (default is 30): ").strip()
@@ -190,13 +200,33 @@ def get_libraries_table():
         return []
 
 def delete_files(tmp_lst):
-    del_file = input('Delete all unwatched files? (yes/no)').lower()
-    if del_file.startswith('y'):
+    del_file = input('Delete all unwatched files? (yes/no/all): ').strip().lower()
+    if del_file == 'all':
         for x in tmp_lst:
             print(f"Removing {x}")
             os.remove(x)
+    elif del_file.startswith('y'):
+        for x in tmp_lst:
+            del_individual = input(f"Delete {x}? (yes/no): ").strip().lower()
+            if del_individual.startswith('y'):
+                print(f"Removing {x}")
+                os.remove(x)
+            else:
+                print(f"Skipping {x}")
     else:
         print('Ok. doing nothing.')
+
+def check_local_file_exists(library_name, file_path):
+    if not LOCAL_ROOT_DIRECTORY or not RELATIVE_PATH_PREFIX:
+        return False
+
+    relative_path = file_path.replace(RELATIVE_PATH_PREFIX, '')
+    local_file_path = os.path.join(LOCAL_ROOT_DIRECTORY, library_name, relative_path)
+    
+    # Debugging statement
+    print(f"Checking local file: {local_file_path}")
+    
+    return os.path.exists(local_file_path)
 
 show_lst = []
 path_lst = []
@@ -237,5 +267,21 @@ for i in sorted(show_lst, reverse=True):
     except Exception as e:
         print(f"Metadata failed. Likely end of range: {e}")
 
+# Display unwatched items
 display_unwatched_items(unwatched_items)
+
+# Prompt user if they want to check against local files only
+check_local_files = input("\nDo you want to filter the results based on local files only? (yes/no): ").strip().lower()
+if check_local_files.startswith('y'):
+    found_items = []
+    not_found_items = []
+    for item in unwatched_items:
+        if check_local_file_exists(item['grandparent_title'], item['file']):
+            found_items.append(item)
+        else:
+            not_found_items.append(item)
+    
+    print("\nFiltered results based on local files:")
+    display_unwatched_items(found_items)
+
 delete_files(path_lst)
